@@ -16,7 +16,7 @@ import (
 )
 
 var  (
-  addr      = flag.String("addr", ":8080", "This is the Address to bind to")
+  addr      = flag.String("addr", ":8090", "This is the Address to bind to")
   // MAY BE o
   brokers   = flag.String("brokers", os.Getenv("KAFKA_PEERS"), "The Kafka brokers to connect to, as a comma separated list")
   verbose   = flag.Bool("verbose", false, "Turn on Sarama logging")
