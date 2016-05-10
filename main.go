@@ -44,6 +44,7 @@ func main(){
   server := &Server{
     DataCollector: newDataCollector(brokerList),
     AccessLogProducer: newAccessLogProducer(brokerList),
+    Consumer: newConumer(brokerList),
   }
   defer func(){
     if err := server.Close(); err != nil {
@@ -82,9 +83,15 @@ func createTlsConfiguration() (t *tls.Config){
 type Server struct {
   DataCollector       sarama.SyncProducer
   AccessLogProducer   sarama.AsyncProducer
+  Consumer            sarama.Consumer
 }
 
 func (s *Server) Close() error {
+
+  if err := s.Consumer.Close(); err != nil {
+    log.Println("Failed to shut down Consumer cleanly", err)
+  }
+
   if err := s.DataCollector.Close(); err != nil {
     log.Println("Failed to shut down data collector cleanly", err)
   }
@@ -102,13 +109,10 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) Run(addr string) error {
-  httpServer := &http.Server{
-    Addr: addr,
-    Handler: s.Handler(),
-  }
 
+  http.Handle("/", http.FileServer(http.Dir("./build")))
   log.Printf("Listening for requests on %s...\n", addr)
-  return httpServer.ListenAndServe()
+  return http.ListenAndServe(addr, nil)
 }
 
 func (s *Server) collectQueryStringData() http.Handler {
@@ -227,4 +231,26 @@ func newAccessLogProducer(brokerList []string) sarama.AsyncProducer {
   }()
 
   return producer
+}
+
+func newConumer(brokerList []string) sarama.Consumer {
+  consumer, err := sarama.NewConsumer(brokerList, nil) // TODO: Create right config
+  if err != nil {
+    log.Fatalln("Error creating new consumer")
+  }
+
+  partititonConsumer, err := consumer.ConsumePartition("access_log", 0, sarama.OffsetNewest)
+
+  if err != nil {
+    panic(err)
+  }
+
+  go func(){
+    for {
+      msg := <-partititonConsumer.Messages()
+      log.Printf("Consumed message offset %d, Value: %s", msg.Offset, msg.Value)
+    }
+  }()
+
+  return consumer
 }
