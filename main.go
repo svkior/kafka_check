@@ -104,13 +104,14 @@ func (s *Server) Close() error {
 }
 
 
-func (s *Server) Handler() http.Handler {
+func (s *Server) OldHandler() http.Handler {
   return s.withAccessLog(s.collectQueryStringData())
 }
 
 func (s *Server) Run(addr string) error {
 
   http.Handle("/", http.FileServer(http.Dir("./build")))
+  http.Handle("/device", s)
   log.Printf("Listening for requests on %s...\n", addr)
   return http.ListenAndServe(addr, nil)
 }
@@ -163,6 +164,20 @@ func (ale *accessLogEntry) Encode() ([]byte, error){
   return ale.encoded, ale.err
 }
 
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request){
+
+/*  socket, err := upgrader.Upgrade(w, req, nil)
+  if err != nil {
+    log.Fatal("DeviceHandler:", err)
+  }
+  */
+/*
+  client := NewRemoteClient(socket)
+  d.AddElement(client)
+  client.Read()
+  */
+}
 
 func (s *Server) withAccessLog(next http.Handler) http.Handler {
 
