@@ -1,2 +1,2 @@
 # kafka_check
-Some workaround Apache Kafka
+Some work around Apache Kafka
